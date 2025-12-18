@@ -16,8 +16,6 @@
 // @connect      127.0.0.1
 // @connect      192.168.1.203
 // @connect      www.sosnc.gov
-// @downloadURL https://raw.githubusercontent.com/Synth6/NCIC-Data-Search/main/NCIC%20%E2%86%94%20NC%20SOS%20Owner%20Capture.user.js
-// @updateURL   https://raw.githubusercontent.com/Synth6/NCIC-Data-Search/main/NCIC%20%E2%86%94%20NC%20SOS%20Owner%20Capture.user.js
 // ==/UserScript==
 
 (function () {
