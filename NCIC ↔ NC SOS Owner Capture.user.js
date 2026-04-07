@@ -34,6 +34,7 @@
   const LAST_TARGET_KEY = 'ncic_last_target_key';
   const REFRESH_TOKEN_KEY = 'ncic_refresh_token';
   const ENABLE_KEY = 'ncic_sos_owner_capture_enabled';
+  const STOP_AUTO_ONCE_KEY = 'ncic_sos_stop_auto_once';
 
   function log() {
     const args = Array.prototype.slice.call(arguments);
@@ -407,6 +408,7 @@
         await GM_setValue(LAST_BASE_KEY, base);
         await GM_setValue(LAST_NAME_KEY, name);
         await GM_setValue(LAST_TARGET_KEY, targetKey);
+        await GM_setValue(STOP_AUTO_ONCE_KEY, false);
 
         copyToClipboard(name);
 
@@ -442,17 +444,33 @@
           return;
         }
 
+        const stopAutoOnce = await GM_getValue(STOP_AUTO_ONCE_KEY, false);
         const storedName = clean(await GM_getValue(LAST_NAME_KEY, ''));
-        if (!storedName) {
-          log('No stored business name.');
-          return;
-        }
-
         const input = document.getElementById('SearchCriteria');
         const button = document.getElementById('SubmitButton');
 
         if (!input || !button) {
           log('Search input or button not found.');
+          return;
+        }
+
+        if (stopAutoOnce) {
+          log('Auto-search paused because previous SOS search returned 0 results.');
+          await GM_setValue(STOP_AUTO_ONCE_KEY, false);
+
+          if (storedName) {
+            input.focus();
+            input.value = storedName;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            input.select();
+          }
+
+          return;
+        }
+
+        if (!storedName) {
+          log('No stored business name.');
           return;
         }
 
@@ -469,6 +487,11 @@
     return;
   }
 
+  function resultsCountIsZero() {
+    const bodyText = clean(document.body.innerText || document.body.textContent || '');
+    return /records found:\s*0/i.test(bodyText);
+  }
+  
   if (isSosResults) {
     (async function () {
       if (!(await isEnabled())) {
@@ -477,6 +500,12 @@
       }
 
       log('On SOS results page');
+
+      if (resultsCountIsZero()) {
+        log('SOS returned 0 results. Stopping one-time auto-search so user can try another variation.');
+        await GM_setValue(STOP_AUTO_ONCE_KEY, true);
+        return;
+      }
 
       function findMoreInformationLink(container) {
         if (!container) return false;
